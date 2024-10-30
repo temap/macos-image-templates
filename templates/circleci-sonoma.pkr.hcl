@@ -24,12 +24,7 @@ variable "disk_free_mb" {
 
 variable "xcode_version" {
   type    = string
-  default = "16"
-}
-
-variable "additional_runtimes" {
-  type    = list(string)
-  default = []
+  default = "16.0.0"
 }
 
 source "tart-cli" "tart" {
@@ -164,88 +159,65 @@ build {
       "sudo mdutil -a -i off",
     ]
   }
-  # Create a symlink for bash compatibility
-  provisioner "shell" {
-    inline = [
-      "touch ~/.zprofile",
-      "ln -s ~/.zprofile ~/.profile",
-    ]
-  }
   provisioner "shell" {
     inline = [
       "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"",
-      "echo \"export LANG=en_US.UTF-8\" >> ~/.zprofile",
-      "echo 'eval \"$(/opt/homebrew/bin/brew shellenv)\"' >> ~/.zprofile",
-      "echo \"export HOMEBREW_NO_AUTO_UPDATE=1\" >> ~/.zprofile",
-      "echo \"export HOMEBREW_NO_INSTALL_CLEANUP=1\" >> ~/.zprofile",
-      "source ~/.zprofile",
-      "brew --version",
-      "brew update",
-      "brew install curl git git-lfs python@3.12 gnu-tar",
-      "brew install --cask git-credential-manager",
-      "git lfs install",
-      "sudo softwareupdate --install-rosetta --agree-to-license"
+      "eval \"$(/opt/homebrew/bin/brew shellenv)\"",
+      "brew analytics off",
+      "brew install autoconf ca-certificates carthage gettext git git-lfs jq libidn2 libunistring libyaml m4 nvm oniguruma openssl@3 pcre2 pyenv rbenv readline ruby-build wget xz yarn temurin xcodesorg/made/xcodes",
     ]
   }
+  provisioner "file" {
+    source      = "data/.bash_profile"
+    destination = "~/.bash_profile"
+  }
+  provisioner "file" {
+    source      = "data/.bashrc"
+    destination = "~/.bashrc"
+  }
+  provisioner "file" {
+    source      = "data/.zshrc"
+    destination = "~/.zshrc"
+  }
+  provisioner "file" {
+    source      = "data/.gitconfig"
+    destination = "~/.gitconfig"
+  }
+  # Ruby
   provisioner "shell" {
     inline = [
-      "source ~/.zprofile",
-      "brew install openjdk@23",
-      "echo 'export PATH=\"/opt/homebrew/opt/openjdk@23/bin:$PATH\"' >> ~/.zprofile",
+      "source ~/.bash_profile",
+      "rbenv install 3.1.6 && rbenv rehash",
+      "rbenv install 3.2.5 && rbenv rehash",
+      # Default Ruby
+      "rbenv install 3.3.4 && rbenv rehash",
+      "rbenv global 3.3.4",
+      # Gems
+      "gem install fastlane:2.222 cocoapods:1.15",
     ]
   }
+  # Node
   provisioner "shell" {
     inline = [
-      "source ~/.zprofile",
-      "brew install libyaml", # https://github.com/rbenv/ruby-build/discussions/2118
-      "brew install rbenv",
-      "echo 'if which rbenv > /dev/null; then eval \"$(rbenv init -)\"; fi' >> ~/.zprofile",
-      "source ~/.zprofile",
-      "rbenv install 2.7.8", // latest 2.x.x before EOL
-      "rbenv install -l | grep -v - | tail -2 | xargs -L1 rbenv install",
-      "rbenv global $(rbenv install -l | grep -v - | tail -1)",
-      "gem install bundler",
+      "source ~/.bash_profile",
+      "nvm install stable",
+      "nvm install --lts",
+      "nvm use lts",
     ]
   }
+  # Python
   provisioner "shell" {
     inline = [
-      "source ~/.zprofile",
-      "brew install node@20",
-      "echo 'export PATH=\"/opt/homebrew/opt/node@20/bin:$PATH\"' >> ~/.zprofile",
-      "source ~/.zprofile",
-      "node --version",
-      "npm install --global yarn",
-      "yarn --version",
-    ]
-  }
-  provisioner "shell" {
-    inline = [
-      "source ~/.zprofile",
-      "brew install awscli"
-    ]
-  }
-  provisioner "shell" {
-    inline = [
-      "curl -so circleci-runner.tar.gz -L https://circleci-binary-releases.s3.amazonaws.com/circleci-runner/current/circleci-runner_darwin_arm64.tar.gz",
-      "tar -xzf circleci-runner.tar.gz --directory ~/",
-      "rm -f circleci-runner.tar.gz"
-    ]
-  }
-  provisioner "shell" {
-    inline = [
-      "source ~/.zprofile",
-      "brew install libimobiledevice ideviceinstaller ios-deploy fastlane carthage",
-      "brew install xcbeautify",
-      "gem update",
-      "gem install cocoapods",
-      "gem install xcpretty",
-      "gem uninstall --ignore-dependencies ffi && gem install ffi -- --enable-libffi-alloc"
+      "source ~/.bash_profile",
+      "pyenv install 3.12",
+      "pyenv rehash",
+      "pyenv global 3.12",
     ]
   }
   # inspired by https://github.com/actions/runner-images/blob/fb3b6fd69957772c1596848e2daaec69eabca1bb/images/macos/provision/configuration/configure-machine.sh#L33-L61
   provisioner "shell" {
     inline = [
-      "source ~/.zprofile",
+      "source ~/.bash_profile",
       "curl -o AppleWWDRCAG3.cer https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer",
       "curl -o DeveloperIDG2CA.cer https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer",
       "curl -o add-certificate.swift https://raw.githubusercontent.com/actions/runner-images/fb3b6fd69957772c1596848e2daaec69eabca1bb/images/macos/provision/configuration/add-certificate.swift",
@@ -255,49 +227,28 @@ build {
       "rm add-certificate* *.cer"
     ]
   }
-  provisioner "shell" {
-    inline = [
-      "source ~/.zprofile",
-      "brew install xcodesorg/made/xcodes",
-      "xcodes version",
-    ]
-  }
   provisioner "file" {
-    source      = pathexpand("~/Downloads/Xcode_${var.xcode_version}.xip")
+    source      = pathexpand("~/Downloads/Xcode-${var.xcode_version}.xip")
     destination = "/Users/${var.username}/Downloads/"
   }
   provisioner "shell" {
     inline = [
-      "source ~/.zprofile",
-      "sudo xcodes install ${var.xcode_version} --experimental-unxip --path /Users/${var.username}/Downloads/Xcode_${var.xcode_version}.xip --select --empty-trash",
+      "source ~/.bash_profile",
+      "xcodes install ${var.xcode_version} --experimental-unxip --path /Users/${var.username}/Downloads/Xcode-${var.xcode_version}.xip --select --empty-trash",
       // get selected xcode path, strip /Contents/Developer
       "INSTALLED_PATH=$(xcodes select -p)",
       "CONTENTS_DIR=$(dirname $INSTALLED_PATH)",
       "APP_DIR=$(dirname $CONTENTS_DIR)",
-      "sudo mv $APP_DIR /Applications/Xcode_${var.xcode_version}.app",
-      "sudo xcode-select -s /Applications/Xcode_${var.xcode_version}.app",
-      "xcodebuild -downloadPlatform iOS",
+      //
+      "ln -s $APP_DIR /Applications/Xcode.app",
+      "xcodebuild -downloadAllPlatforms",
       "xcodebuild -runFirstLaunch",
     ]
-  }
-  provisioner "shell" {
-    inline = [
-      "source ~/.zprofile",
-      "sudo xcodes select '${var.xcode_version}'",
-    ]
-  }
-  provisioner "shell" {
-    inline = concat(
-      ["source ~/.zprofile"],
-      [
-        for runtime in var.additional_runtimes : "sudo xcodes runtimes install ${runtime}"
-      ]
-    )
   }
   // check there is at least 15GB of free space and fail if not
   provisioner "shell" {
     inline = [
-      "source ~/.zprofile",
+      "source ~/.bash_profile",
       "df -h",
       "export FREE_MB=$(df -m | awk '{print $4}' | head -n 2 | tail -n 1)",
       "[[ $FREE_MB -gt ${var.disk_free_mb} ]] && echo OK || exit 1"
