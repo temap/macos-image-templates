@@ -200,9 +200,9 @@ build {
   provisioner "shell" {
     inline = [
       "source ~/.bash_profile",
-      "nvm install stable",
-      "nvm install --lts",
-      "nvm use lts",
+      "nvm install 20.17",
+      "nvm install 22.8",
+      "nvm use 20.17",
     ]
   }
   # Python
@@ -245,7 +245,7 @@ build {
       "xcodebuild -runFirstLaunch",
     ]
   }
-  // check there is at least 15GB of free space and fail if not
+  // check there is enough free space and fail if not
   provisioner "shell" {
     inline = [
       "source ~/.bash_profile",
