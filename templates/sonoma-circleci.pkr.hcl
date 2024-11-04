@@ -42,6 +42,11 @@ variable "xcode_versions" {
   default = ["15.2", "16"]
 }
 
+variable "additional_runtimes" {
+  type    = list(string)
+  default = ["visionOS 1.0"]
+}
+
 source "tart-cli" "tart" {
   vm_base_name = "sonoma-base"
   vm_name      = "sonoma-circleci"
@@ -65,7 +70,7 @@ locals {
         "APP_DIR=$(dirname $CONTENTS_DIR)",
         "sudo mv $APP_DIR /Applications/Xcode_${version}.app",
         "sudo xcode-select -s /Applications/Xcode_${version}.app",
-        "xcodebuild -downloadPlatform iOS visionOS",
+        "xcodebuild -downloadPlatform iOS",
         "xcodebuild -runFirstLaunch",
       ]
     }
@@ -187,6 +192,7 @@ build {
     sources     = [for version in var.xcode_versions : pathexpand("~/Downloads/Xcode_${version}.xip")]
     destination = "/Users/${var.username}/Downloads/"
   }
+
   dynamic "provisioner" {
     for_each = local.xcode_install_provisioners
     labels   = ["shell"]
@@ -199,6 +205,14 @@ build {
       "source ~/.zprofile",
       "sudo xcodes select '${var.xcode_versions[0]}'",
     ]
+  }
+  provisioner "shell" {
+    inline = concat(
+      ["source ~/.zprofile"],
+      [
+        for runtime in var.additional_runtimes : "sudo xcodes runtimes install '${runtime}'"
+      ]
+    )
   }
   provisioner "shell" {
     inline = [
