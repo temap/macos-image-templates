@@ -12,7 +12,7 @@ variable "macos_version" {
 }
 
 source "tart-cli" "tart" {
-  vm_base_name = "ghcr.io/cirruslabs/macos-${var.macos_version}-vanilla:latest"
+  vm_base_name = "ghcr.io/temap/macos-${var.macos_version}-vanilla:latest"
   vm_name      = "${var.macos_version}-base"
   cpu_count    = 4
   memory_gb    = 8
@@ -64,10 +64,10 @@ build {
       "source ~/.zprofile",
       "brew --version",
       "brew update",
-      "brew install wget unzip zip ca-certificates cmake gcc git-lfs jq yq gh gitlab-runner",
+      "brew install wget unzip zstd zip ca-certificates cmake git-lfs jq yq gh",
       "brew install curl || true", // doesn't work on Monterey
       "brew install --cask git-credential-manager",
-      "git lfs install",
+      "git lfs install --skip-smudge",
       "sudo softwareupdate --install-rosetta --agree-to-license"
     ]
   }
@@ -147,33 +147,6 @@ build {
       "test -d /Users/runner",
       "test -f ~/.ssh/known_hosts",
       "brew doctor"
-    ]
-  }
-
-  // Guest agent for Tart VMs
-  provisioner "file" {
-    source      = "data/tart-guest-daemon.plist"
-    destination = "~/tart-guest-daemon.plist"
-  }
-  provisioner "file" {
-    source      = "data/tart-guest-agent.plist"
-    destination = "~/tart-guest-agent.plist"
-  }
-  provisioner "shell" {
-    inline = [
-      # Install Tart Guest Agent
-      "source ~/.zprofile",
-      "brew install cirruslabs/cli/tart-guest-agent",
-
-      # Install daemon variant of the Tart Guest Agent
-      "sudo mv ~/tart-guest-daemon.plist /Library/LaunchDaemons/org.cirruslabs.tart-guest-daemon.plist",
-      "sudo chown root:wheel /Library/LaunchDaemons/org.cirruslabs.tart-guest-daemon.plist",
-      "sudo chmod 0644 /Library/LaunchDaemons/org.cirruslabs.tart-guest-daemon.plist",
-
-      # Install agent variant of the Tart Guest Agent
-      "sudo mv ~/tart-guest-agent.plist /Library/LaunchAgents/org.cirruslabs.tart-guest-agent.plist",
-      "sudo chown root:wheel /Library/LaunchAgents/org.cirruslabs.tart-guest-agent.plist",
-      "sudo chmod 0644 /Library/LaunchAgents/org.cirruslabs.tart-guest-agent.plist",
     ]
   }
 }
