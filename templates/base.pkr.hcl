@@ -30,12 +30,21 @@ build {
     destination = "~/limit.maxfiles.plist"
   }
 
+  provisioner "file" {
+    source      = "data/disable.tcp.tso.plist"
+    destination = "~/disable.tcp.tso.plist"
+  }
+
   provisioner "shell" {
     inline = [
       "echo 'Configuring maxfiles...'",
       "sudo mv ~/limit.maxfiles.plist /Library/LaunchDaemons/limit.maxfiles.plist",
       "sudo chown root:wheel /Library/LaunchDaemons/limit.maxfiles.plist",
       "sudo chmod 0644 /Library/LaunchDaemons/limit.maxfiles.plist",
+      "echo 'Disabling TCP TSO...'",
+      "sudo mv ~/disable.tcp.tso.plist /Library/LaunchDaemons/disable.tcp.tso.plist",
+      "sudo chown root:wheel /Library/LaunchDaemons/disable.tcp.tso.plist",
+      "sudo chmod 0644 /Library/LaunchDaemons/disable.tcp.tso.plist",
       "echo 'Disabling spotlight...'",
       "sudo mdutil -a -i off",
     ]
